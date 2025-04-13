@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 from typing import Optional
 from urllib.parse import urljoin, urlparse, urlunparse
@@ -189,43 +188,47 @@ class WebCrawler:
             self.results[url] = content
 
 
-# def main():
-#     parser = argparse.ArgumentParser(
-#         description="A domain-limited web crawler that scrapes HTML pages to markdown for an LLM knowledge base."
-#     )
-#     parser.add_argument("url", help="Starting URL, e.g. https://example.com")
-#     parser.add_argument("--cli", action="store_true", help="Show verbose output")
-#     parser.add_argument(
-#         "--output", default="output.txt", help="Output text file (default: output.txt)"
-#     )
-#     parser.add_argument(
-#         "--unlimited",
-#         action="store_true",
-#         help="Crawl until every subpage on the domain is visited (ignores max-depth)",
-#     )
-#     parser.add_argument(
-#         "--max-depth",
-#         type=int,
-#         default=3,
-#         help="Maximum crawl depth if not unlimited (default: 3)",
-#     )
-#
-#     args = parser.parse_args()
-#
-#     start_domain = urlparse(args.url).netloc
-#
-#     crawler = WebCrawler(
-#         domain=start_domain,
-#         cli=args.cli,
-#         output_file=args.output,
-#         unlimited_depth=args.unlimited,
-#         max_depth=args.max_depth,
-#     )
-#     crawler.crawl(args.url)
-#
-#     if not args.output:
-#         for url, content in crawler.results.items():
-#             print(f"URL: {url}")
-#             print("Content Preview:")
-#             print(content[:300])  # print first 300 characters as preview
-#             print("-" * 80)
+def main():
+    parser = argparse.ArgumentParser(
+        description="A domain-limited web crawler that scrapes HTML pages to markdown for an LLM knowledge base."
+    )
+    parser.add_argument("url", help="Starting URL, e.g. https://example.com")
+    parser.add_argument("--cli", action="store_true", help="Show verbose output")
+    parser.add_argument(
+        "--output", default="output.txt", help="Output text file (default: output.txt)"
+    )
+    parser.add_argument(
+        "--unlimited",
+        action="store_true",
+        help="Crawl until every subpage on the domain is visited (ignores max-depth)",
+    )
+    parser.add_argument(
+        "--max-depth",
+        type=int,
+        default=3,
+        help="Maximum crawl depth if not unlimited (default: 3)",
+    )
+
+    args = parser.parse_args()
+
+    start_domain = urlparse(args.url).netloc
+
+    crawler = WebCrawler(
+        domain=start_domain,
+        cli=args.cli,
+        output_file=args.output,
+        unlimited_depth=args.unlimited,
+        max_depth=args.max_depth,
+    )
+    crawler.crawl(args.url)
+
+    if not args.output:
+        for url, content in crawler.results.items():
+            print(f"URL: {url}")
+            print("Content Preview:")
+            print(content[:300])  # print first 300 characters as preview
+            print("-" * 80)
+
+
+if __name__ == "__main__":
+    main()

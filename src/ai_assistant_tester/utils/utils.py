@@ -10,7 +10,6 @@ def get_openai_api_key() -> str:
     return OPENAI_API_KEY
 
 
-def send_to_openai(
-    prompt: str, extracted_text: str, model: str = "gpt-4o", temperature: float = 0.0
-):
-    pass
+def get_file_content(file_path: str) -> str:
+    with open(file_path, "r") as file:
+        return file.read()

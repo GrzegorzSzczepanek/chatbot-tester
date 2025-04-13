@@ -10,7 +10,13 @@ Guidelines:
 6. Ensure the output is complete and easy to read.
 
 Extracted Text:
-{extracted_text}
+{chunk_text}
 
 Provide your final formatted content as a complete Markdown document.
+"""
+
+generate_question_answer_pairs = """
+Based on the following content, generate 10 to 20 (number of them depends on amount of content) question–answer pairs that test the reader's understanding of key concepts. Format the output as JSON with each pair containing a 'question' and an 'answer'. Ensure the questions are clear, concise, and cover both high-level ideas and specific details of the provided text.
+Provided text:
+{chunk_text}
 """
