@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 import tiktoken
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
-from tqdm import tqdm
 
 from ai_assistant_tester.prompts import format_knowledge_base_chunk
 from ai_assistant_tester.scraping.WebCrawler import WebCrawler
