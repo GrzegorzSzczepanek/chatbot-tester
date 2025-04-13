@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from typing import List, Optional
 from urllib.parse import urlparse
@@ -6,6 +7,7 @@ from urllib.parse import urlparse
 import tiktoken
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
+from tqdm import tqdm
 
 from ai_assistant_tester.prompts import format_knowledge_base_chunk
 from ai_assistant_tester.scraping.WebCrawler import WebCrawler
@@ -189,8 +191,9 @@ class KnowledgeBaseFormatter:
         )
 
         all_qas = []
-        for chunk in chunks:
+        for i, chunk in enumerate(chunks):
             prompt = qa_prompt_template.format(num_pairs=num_pairs, chunk_text=chunk)
+            logging.info(f"Processing chunk {i+1} of {len(chunks)}")
             # Create a fresh set of messages for each chunk to isolate context.
             qa_messages = [
                 {
@@ -206,6 +209,7 @@ class KnowledgeBaseFormatter:
                 {"role": "user", "content": prompt},
             ]
 
+            logging.info("Waiting for OpenAI response...")
             response: ChatCompletion = self.client.chat.completions.create(
                 model=self.model,
                 messages=qa_messages,
@@ -213,7 +217,7 @@ class KnowledgeBaseFormatter:
                 max_tokens=self.max_tokens,
             )
             resp_text = response.choices[0].message.content.strip()
-            print("Raw Q&A response for current chunk:", resp_text)  # Debug output
+            logging.debug(f"Raw response for chunk {i+1}: {resp_text}")
 
             # Remove markdown code fences if present.
             resp_text = re.sub(r"^```(?:\w+)?\s*", "", resp_text)
@@ -227,22 +231,26 @@ class KnowledgeBaseFormatter:
                     if len(pairs) > num_pairs:
                         pairs = pairs[:num_pairs]
                     elif len(pairs) < num_pairs:
-                        print(
-                            f"Warning: Received only {len(pairs)} pairs instead of {num_pairs} in this chunk."
+                        logging.warning(
+                            f"Received only {len(pairs)} pairs instead of {num_pairs} in chunk {i+1}."
                         )
                     all_qas.extend(pairs)
             except Exception as e:
-                print(f"Error parsing JSON: {e}")
-                print("Response text was:", resp_text)
-                # Optionally handle re-generation here; for now, we simply skip this chunk.
+                logging.error(f"Error parsing JSON for chunk {i+1}: {e}")
+                logging.debug("Response text was: " + resp_text)
                 continue
 
         result = {"qas": all_qas}
-        print("Aggregated Q&A result:", result)
+        logging.info("Aggregated Q&A result generated.")
         return result
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+    )
+
     formatter = KnowledgeBaseFormatter(model="gpt-4o", max_tokens_per_chunk=1000)
 
     raw = formatter.crawl_site("https://example.com", cli=True)
