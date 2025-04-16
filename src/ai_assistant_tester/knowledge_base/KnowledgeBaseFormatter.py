@@ -5,12 +5,11 @@ from typing import List, Optional
 from urllib.parse import urlparse
 
 import tiktoken
-from openai import OpenAI
 from openai.types.chat import ChatCompletion
 
 from ai_assistant_tester.prompts import format_knowledge_base_chunk
 from ai_assistant_tester.scraping.WebCrawler import WebCrawler
-from ai_assistant_tester.utils.utils import get_file_content, get_openai_api_key
+from ai_assistant_tester.utils.utils import get_client, get_file_content
 
 
 class KnowledgeBaseFormatter:
@@ -22,7 +21,7 @@ class KnowledgeBaseFormatter:
 
     def __init__(
         self,
-        model: str = "gpt-4o",
+        model: str = "gpt-4.1",
         max_tokens_per_chunk: int = 1000,
         temperature: float = 0.0,
     ):
@@ -37,7 +36,7 @@ class KnowledgeBaseFormatter:
         self.model = model
         self.max_tokens = max_tokens_per_chunk
         self.temperature = temperature
-        self.client = OpenAI(api_key=get_openai_api_key())
+        self.client = get_client()
         self.encoding = tiktoken.encoding_for_model(model)
         self.messages = [
             {
@@ -176,11 +175,9 @@ class KnowledgeBaseFormatter:
         Returns:
             dict: A dictionary containing all Q&A pairs in the format {"qas": [...] }.
         """
-        # Load and chunk the knowledge base text.
         knowledge_base = get_file_content(filepath)
         chunks = self._chunk_text(knowledge_base)
 
-        # Define a prompt template for generating the Q&A pairs.
         qa_prompt_template = (
             "Based on the following knowledge base text, generate exactly {num_pairs} diverse "
             "question-answer pairs that test key concepts. "
@@ -215,8 +212,10 @@ class KnowledgeBaseFormatter:
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
             )
-            resp_text = response.choices[0].message.content.strip()
-            logging.debug(f"Raw response for chunk {i+1}: {resp_text}")
+            resp_text = ""
+            if response.choices[0].message.content:
+                resp_text = response.choices[0].message.content.strip()
+                logging.debug(f"Raw response for chunk {i+1}: {resp_text}")
 
             # Remove markdown code fences if present.
             resp_text = re.sub(r"^```(?:\w+)?\s*", "", resp_text)
@@ -250,7 +249,7 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)s] %(message)s",
     )
 
-    formatter = KnowledgeBaseFormatter(model="gpt-4o", max_tokens_per_chunk=1000)
+    formatter = KnowledgeBaseFormatter(model="gpt-4.1", max_tokens_per_chunk=1000)
 
     raw = formatter.crawl_site("https://example.com", cli=True)
     formatted = formatter.format_knowledge_base(raw)
