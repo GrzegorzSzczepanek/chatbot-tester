@@ -1,16 +1,19 @@
-from typing import Literal
+from pathlib import Path
+from typing import Any, Literal, Optional
 
-from openai import OpenAI
+from openai import NotGiven, OpenAI
 from openai.pagination import SyncCursorPage
+from openai.types import VectorStore
 from openai.types.beta import ThreadDeleted
 from openai.types.beta.assistant import Assistant
-from openai.types.beta.thread import Thread
+from openai.types.beta.thread import Thread, ToolResources
 from openai.types.beta.thread_create_and_run_params import Tool
 from openai.types.beta.threads.message import Message
 from openai.types.beta.threads.run import Run
 from openai.types.beta.threads.run_submit_tool_outputs_params import ToolOutput
 from openai.types.beta.threads.runs.run_step import RunStep
 from openai.types.chat.chat_completion import ChatCompletion
+from openai.types.vector_stores.vector_store_file_batch import VectorStoreFileBatch
 
 from ai_assistant_tester.utils.utils import get_client
 
@@ -116,11 +119,31 @@ class AssistantManager:
         assistant = self.client.beta.assistants.retrieve(assistant_id)
         return assistant
 
+    def add_vector_stores(
+        self, name: str, filepaths: list[Path]
+    ) -> VectorStoreFileBatch:
+        vector_store = self.client.vector_stores.create(name=name)
+        file_streams = [open(path, "rb") for path in filepaths]
+        file_batch = self.client.vector_stores.file_batches.upload_and_poll(
+            vector_store_id=vector_store.id, files=file_streams
+        )
+
+        return file_batch
+
     def create_assistant(
-        self, name: str, instructions: str, tools: list[Tool], model: str
+        self,
+        name: str,
+        instructions: str,
+        tools: list[Tool],
+        model: str,
+        vs_ids: list[str],
     ) -> Assistant:
         assistant = self.client.beta.assistants.create(
-            name=name, instructions=instructions, tools=tools, model=model
+            name=name,
+            instructions=instructions,
+            tools=tools,
+            model=model,
+            tool_resources={"file_search": {"vector_store_ids": vs_ids}},
         )
         return assistant
 
@@ -130,10 +153,16 @@ class AssistantManager:
         instructions: str,
         name: str,
         tools: list[Tool],
+        tool_resources: Any,
         model: str = "gpt-4o-mini",
     ):
         updated_assistant = self.client.beta.assistants.update(
-            assistant_id, instructions=instructions, name=name, tools=tools, model=model
+            assistant_id,
+            instructions=instructions,
+            name=name,
+            tools=tools,
+            model=model,
+            tool_resources=tool_resources,
         )
 
         return updated_assistant
@@ -141,6 +170,10 @@ class AssistantManager:
     def delete_assistant(self, assistant_id: str) -> None:
         response = self.client.beta.assistants.delete(assistant_id)
         print(response)
+
+    def get_assistant_list(self) -> SyncCursorPage[Assistant]:
+        assistants = self.client.beta.assistants.list(order="desc")
+        return assistants
 
     def run_evaluation(
         self, system_content: str, user_content: str, model: str = "gpt-4o-mini"

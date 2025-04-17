@@ -286,4 +286,3 @@ This guide provides an introduction to Bash, its command line operations, and th
 ## Additional Reading
 - [Using Radare2 for Simple Binary Analysis](#)
 ```
-

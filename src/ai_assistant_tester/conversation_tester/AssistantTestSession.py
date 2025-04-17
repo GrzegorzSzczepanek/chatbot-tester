@@ -112,14 +112,14 @@ class AssistantTestSession:
         return self._parse_numbered_answers(reply, expected_count=len(qa_set))
 
 
-if __name__ == "__main__":
-    qa_pairs = load_json_file_qa_pairs("./qa_set.json")
-    session = AssistantTestSession(
-        name="QA Tester",
-        instructions="You are a helpful assistant. Answer each numbered question clearly.",
-        tools=[{"type": "file_search"}],
-        model="gpt-4o-mini",
-        kb_file=KNOWLEDGE_BASE_OUTPUTS_DIR / "example.md",
-    )
-    answers = session.run_test(qa_pairs)
-    print("Assistant answers:", answers)
+# if __name__ == "__main__":
+#     qa_pairs = load_json_file_qa_pairs("./qa_set.json")
+#     session = AssistantTestSession(
+#         name="QA Tester",
+#         instructions="You are a helpful assistant. Answer each numbered question clearly.",
+#         tools=[{"type": "file_search"}],
+#         model="gpt-4o-mini",
+#         kb_file=KNOWLEDGE_BASE_OUTPUTS_DIR / "example.md",
+#     )
+#     answers = session.run_test(qa_pairs)
+#     print("Assistant answers:", answers)

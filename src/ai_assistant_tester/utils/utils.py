@@ -37,7 +37,7 @@ class QAPairs(TypedDict):
     qas: List[QAPair]
 
 
-def load_json_file_qa_pairs(filepath: str) -> QAPairs:
+def load_json_file_qa_pairs(filepath: Path) -> QAPairs:
     """
     Load and validate QA pairs from a JSON file.
     """

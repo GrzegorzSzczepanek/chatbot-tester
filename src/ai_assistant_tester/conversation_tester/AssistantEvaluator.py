@@ -10,7 +10,7 @@ from ai_assistant_tester.conversation_tester.AssistantTestSession import (
     AssistantTestSession,
 )
 from ai_assistant_tester.prompts import system_answer_evaluation
-from ai_assistant_tester.utils.constants import KNOWLEDGE_BASE_OUTPUTS_DIR
+from ai_assistant_tester.utils.constants import KNOWLEDGE_BASE_OUTPUTS_DIR, QA_PAIRS_DIR
 from ai_assistant_tester.utils.utils import QAPairs, load_json_file_qa_pairs
 
 
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     from ai_assistant_tester.utils.constants import KNOWLEDGE_BASE_OUTPUTS_DIR
     from ai_assistant_tester.utils.utils import load_json_file_qa_pairs
 
-    qa_pairs = load_json_file_qa_pairs("./qa_set.json")
+    qa_pairs = load_json_file_qa_pairs(QA_PAIRS_DIR / "example.json")
     mgr = AssistantManager()
     session = AssistantTestSession(
         name="QA Tester",

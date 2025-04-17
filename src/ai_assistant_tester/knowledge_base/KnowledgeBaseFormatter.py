@@ -7,11 +7,11 @@ from typing import List, Optional
 from urllib.parse import urlparse
 
 import tiktoken
-from openai.types.chat import ChatCompletion
+from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
 
 from ai_assistant_tester.prompts import format_knowledge_base_chunk
 from ai_assistant_tester.scraping.WebCrawler import WebCrawler
-from ai_assistant_tester.utils.constants import KNOWLEDGE_BASE_OUTPUTS_DIR
+from ai_assistant_tester.utils.constants import KNOWLEDGE_BASE_OUTPUTS_DIR, QA_PAIRS_DIR
 from ai_assistant_tester.utils.utils import get_client, get_file_content
 
 
@@ -24,7 +24,7 @@ class KnowledgeBaseFormatter:
 
     def __init__(
         self,
-        model: str = "gpt-4o",
+        model: str = "gpt-4o-mini",
         max_tokens_per_chunk: int = 1000,
         temperature: float = 0.0,
     ):
@@ -41,7 +41,7 @@ class KnowledgeBaseFormatter:
         self.temperature = temperature
         self.client = get_client()
         self.encoding = tiktoken.encoding_for_model(model)
-        self.messages = [
+        self.messages: List[ChatCompletionMessageParam] = [
             {
                 "role": "system",
                 "content": (
@@ -120,7 +120,11 @@ class KnowledgeBaseFormatter:
         """
 
         formatted_prompt = prompt.format(chunk_text=chunk)
-        self.messages.append({"role": "user", "content": formatted_prompt})
+        message: ChatCompletionMessageParam = {
+            "role": "user",
+            "content": formatted_prompt,
+        }
+        self.messages.append(message)
         response: ChatCompletion = self.client.chat.completions.create(
             model=self.model,
             messages=self.messages,
@@ -196,6 +200,7 @@ class KnowledgeBaseFormatter:
         )
 
         all_qas = []
+        num_pairs = num_pairs // len(chunks)
         for i, chunk in enumerate(chunks):
             prompt = qa_prompt_template.format(num_pairs=num_pairs, chunk_text=chunk)
             logging.info(f"Processing chunk {i+1} of {len(chunks)}")
@@ -269,5 +274,5 @@ if __name__ == "__main__":
     qa_set = formatter.generate_question_answer_set(
         filepath=KNOWLEDGE_BASE_OUTPUTS_DIR / "example.md", num_pairs=10
     )
-    with open("qa_set.json", "w") as f:
+    with open(QA_PAIRS_DIR / "example.json", "w") as f:
         json.dump(qa_set, f, indent=2)
