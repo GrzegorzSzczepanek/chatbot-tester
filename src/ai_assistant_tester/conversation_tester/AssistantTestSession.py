@@ -1,9 +1,8 @@
-import json
 import re
 import time
 from pathlib import Path
 from pprint import pprint
-from typing import Any, List, Optional, TypedDict
+from typing import List, Optional
 
 from openai.types.beta.thread_create_and_run_params import Tool
 
@@ -26,11 +25,12 @@ class AssistantTestSession:
         name: str,
         instructions: str,
         tools: List[Tool],
+        manager: AssistantManager,
         model: str = "gpt-4o-mini",
         kb_file: Optional[Path] = None,
     ):
         self.kb_formatter = KnowledgeBaseFormatter(model=model)
-        self.manager = AssistantManager()
+        self.manager = manager
         self.assistant = self.manager.create_assistant(
             name=name,
             instructions=instructions,
@@ -111,28 +111,6 @@ class AssistantTestSession:
 
         return self._parse_numbered_answers(reply, expected_count=len(qa_set))
 
-    def evaluate(
-        self, qa_pairs: QAPairs, answers: List[str]
-    ) -> List[dict[str, Optional[bool]]]:
-        """
-        Compares each expected answer to the assistant's parsed answers.
-        Returns a list of verdict dicts.
-        """
-        verdicts = []
-        for idx, qa in enumerate(qa_pairs["qas"]):
-            expected = qa["answer"].strip()
-            actual = answers[idx] if idx < len(answers) else ""
-            correct = expected.lower() in actual.lower()
-            verdicts.append(
-                {
-                    "question": qa["question"],
-                    "expected": expected,
-                    "actual": actual,
-                    "correct": correct,
-                }
-            )
-        return verdicts
-
 
 if __name__ == "__main__":
     qa_pairs = load_json_file_qa_pairs("./qa_set.json")
@@ -145,5 +123,3 @@ if __name__ == "__main__":
     )
     answers = session.run_test(qa_pairs)
     print("Assistant answers:", answers)
-    results = session.evaluate(qa_pairs, answers)
-    pprint(results)

@@ -2,7 +2,7 @@ from typing import Literal
 
 from openai import OpenAI
 from openai.pagination import SyncCursorPage
-from openai.types.beta import ThreadDeleted, assistant
+from openai.types.beta import ThreadDeleted
 from openai.types.beta.assistant import Assistant
 from openai.types.beta.thread import Thread
 from openai.types.beta.thread_create_and_run_params import Tool
@@ -130,7 +130,7 @@ class AssistantManager:
         instructions: str,
         name: str,
         tools: list[Tool],
-        model: str = "gpt-4o",
+        model: str = "gpt-4o-mini",
     ):
         updated_assistant = self.client.beta.assistants.update(
             assistant_id, instructions=instructions, name=name, tools=tools, model=model
