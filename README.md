@@ -78,4 +78,11 @@
 - Make sure your `pyproject.toml` is correctly set up with your dependencies.
 - Ensure that the file paths in your commands match the structure of your repository.
 - If you need to change the number of Q&A pairs, adjust the `num_pairs` parameter in the `generate_question_answer_set` call within your script.
+- IMPORTANT - beta version of many API features was used so we need to keep track of support.
+
+## TODO
+- Feeding knowledge base to AI assistant using assistant manager.
+- Q&A Pairs test using assistant manager.
+- Result evaluation using the chatbot. Check if answers are correct using AI.
+- Raport generation
 

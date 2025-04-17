@@ -226,7 +226,7 @@ def main():
         for url, content in crawler.results.items():
             print(f"URL: {url}")
             print("Content Preview:")
-            print(content[:300])  # print first 300 characters as preview
+            print(content[:300])
             print("-" * 80)
 
 

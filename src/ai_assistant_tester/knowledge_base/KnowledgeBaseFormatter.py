@@ -1,6 +1,8 @@
 import json
 import logging
+import os
 import re
+from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlparse
 
@@ -9,6 +11,7 @@ from openai.types.chat import ChatCompletion
 
 from ai_assistant_tester.prompts import format_knowledge_base_chunk
 from ai_assistant_tester.scraping.WebCrawler import WebCrawler
+from ai_assistant_tester.utils.constants import KNOWLEDGE_BASE_OUTPUTS_DIR
 from ai_assistant_tester.utils.utils import get_client, get_file_content
 
 
@@ -21,7 +24,7 @@ class KnowledgeBaseFormatter:
 
     def __init__(
         self,
-        model: str = "gpt-4.1",
+        model: str = "gpt-4o",
         max_tokens_per_chunk: int = 1000,
         temperature: float = 0.0,
     ):
@@ -148,7 +151,11 @@ class KnowledgeBaseFormatter:
 
         return result
 
-    def save_to_file(self, content: str, output_file: str = "output.md") -> None:
+    def save_to_file(
+        self,
+        content: str,
+        output_file: Path = KNOWLEDGE_BASE_OUTPUTS_DIR / "unnamed.md",
+    ) -> None:
         """
         Save text content to file.
 
@@ -158,10 +165,12 @@ class KnowledgeBaseFormatter:
         Returns:
             None
         """
+        KNOWLEDGE_BASE_OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
         with open(output_file, "w") as f:
             f.write(content)
 
-    def generate_question_answer_set(self, filepath: str, num_pairs: int = 10) -> dict:
+    def generate_question_answer_set(self, filepath: Path, num_pairs: int = 10) -> dict:
         """
         Generate a set of question-answer pairs from a given knowledge base file.
         This method processes the file content by chunking it and, for each chunk,
@@ -249,12 +258,16 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)s] %(message)s",
     )
 
-    formatter = KnowledgeBaseFormatter(model="gpt-4.1", max_tokens_per_chunk=1000)
+    formatter = KnowledgeBaseFormatter(model="gpt-4o", max_tokens_per_chunk=1000)
 
     raw = formatter.crawl_site("https://example.com", cli=True)
     formatted = formatter.format_knowledge_base(raw)
-    formatter.save_to_file(content=formatted, output_file="example.md")
+    formatter.save_to_file(
+        content=formatted, output_file=KNOWLEDGE_BASE_OUTPUTS_DIR / "example.md"
+    )
 
-    qa_set = formatter.generate_question_answer_set(filepath="example.md", num_pairs=10)
+    qa_set = formatter.generate_question_answer_set(
+        filepath=KNOWLEDGE_BASE_OUTPUTS_DIR / "example.md", num_pairs=10
+    )
     with open("qa_set.json", "w") as f:
         json.dump(qa_set, f, indent=2)

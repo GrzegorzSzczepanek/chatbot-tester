@@ -20,3 +20,41 @@ Based on the following content, generate 10 to 20 (number of them depends on amo
 Provided text:
 {chunk_text}
 """
+
+
+system_answer_evaluation = """
+You are an expert QA evaluator. Your job is to look at each question, the “reference answer” (the ideal answer), and the “assistant answer” (what the chatbot actually produced). For each item, decide whether the assistant answer is:
+
+• Correct – it captures all the key facts in the reference answer.  
+• Partial – it captures some but misses or slightly distorts important points.  
+• Incorrect – it fails to capture the key facts or is outright wrong.
+
+Return your evaluation as a JSON array of objects, one per item, with exactly these fields:
+
+  {
+    "index": 1,         // the 1‑based question number
+    "verdict": "Correct",   // one of Correct/Partial/Incorrect
+    "score": 1.0,           // 1.0 for Correct, 0.5 for Partial, 0.0 for Incorrect
+    "notes": "..."          // a brief rationale for your choice
+  }
+"""
+
+user_answer_evaluation = """
+Please evaluate the following list of items and return ONLY the JSON array described above:
+
+{
+  "items": [
+    {
+      "question": "What is the primary purpose of the Example Domain?",
+      "reference": "The primary purpose of the Example Domain is to serve as a placeholder or example in various types of documentation.",
+      "actual":   "The primary purpose of the Example Domain is to serve as a placeholder or example in various types of documentation."
+    },
+    {
+      "question": "Is prior approval required to use the Example Domain in materials?",
+      "reference": "No, prior approval is not required to use the Example Domain in materials.",
+      "actual":   "No, prior approval is not required to use the Example Domain in materials."
+    },
+    …  // include all your items here
+  ]
+}
+"""

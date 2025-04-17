@@ -1,7 +1,8 @@
-from abc import update_abstractmethods
+from typing import Literal
 
+from openai import OpenAI
 from openai.pagination import SyncCursorPage
-from openai.types.beta import ThreadDeleted
+from openai.types.beta import ThreadDeleted, assistant
 from openai.types.beta.assistant import Assistant
 from openai.types.beta.thread import Thread
 from openai.types.beta.thread_create_and_run_params import Tool
@@ -9,6 +10,7 @@ from openai.types.beta.threads.message import Message
 from openai.types.beta.threads.run import Run
 from openai.types.beta.threads.run_submit_tool_outputs_params import ToolOutput
 from openai.types.beta.threads.runs.run_step import RunStep
+from openai.types.chat.chat_completion import ChatCompletion
 
 from ai_assistant_tester.utils.utils import get_client
 
@@ -17,16 +19,8 @@ class AssistantManager:
     def __init__(self) -> None:
         self.client = get_client()
 
-    def create(
-        self, name: str, instructions: str, tools: list[Tool], model: str
-    ) -> Assistant:
-        assistant = self.client.beta.assistants.create(
-            name=name,
-            instructions=instructions,
-            tools=tools,
-            model=model,
-        )
-        return assistant
+    def get_client(self) -> OpenAI:
+        return self.client
 
     def create_thread(self) -> Thread:
         thread = self.client.beta.threads.create()
@@ -40,7 +34,12 @@ class AssistantManager:
         response = self.client.beta.threads.delete(thread_id)
         return response
 
-    def add_message(self, thread: Thread, role: str, content: str):
+    def add_message(
+        self,
+        thread: Thread,
+        role: Literal["user", "assistant"],
+        content: str,
+    ) -> Message:
         message = self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role=role,
@@ -113,8 +112,16 @@ class AssistantManager:
 
         return run
 
-    def connect(self, assistant_id: str):
+    def connect(self, assistant_id: str) -> Assistant:
         assistant = self.client.beta.assistants.retrieve(assistant_id)
+        return assistant
+
+    def create_assistant(
+        self, name: str, instructions: str, tools: list[Tool], model: str
+    ) -> Assistant:
+        assistant = self.client.beta.assistants.create(
+            name=name, instructions=instructions, tools=tools, model=model
+        )
         return assistant
 
     def update_assistant(
@@ -123,7 +130,7 @@ class AssistantManager:
         instructions: str,
         name: str,
         tools: list[Tool],
-        model: str,
+        model: str = "gpt-4o",
     ):
         updated_assistant = self.client.beta.assistants.update(
             assistant_id, instructions=instructions, name=name, tools=tools, model=model
@@ -135,6 +142,14 @@ class AssistantManager:
         response = self.client.beta.assistants.delete(assistant_id)
         print(response)
 
-
-# tools: list[Tool]
-# tools = [Tool(type="code_interpreter")]
+    def run_evaluation(
+        self, system_content: str, user_content: str, model: str = "gpt-4o-mini"
+    ) -> ChatCompletion:
+        response = self.client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": user_content},
+            ],
+        )
+        return response
