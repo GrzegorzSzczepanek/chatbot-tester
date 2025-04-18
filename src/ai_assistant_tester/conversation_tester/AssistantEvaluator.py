@@ -64,11 +64,11 @@ class AssistantEvaluator:
             model=model,
         )
 
-        content = resp.choices[0].message.content or ""
-        if not content.strip():
+        raw = resp.choices[0].message.content or ""
+        if not raw.strip():
             raise ValueError("LLM evaluation response was empty")
 
-        cleaned = self._strip_code_fences(content)
+        cleaned = self._strip_code_fences(raw)
 
         try:
             grades = json.loads(cleaned)
@@ -86,22 +86,16 @@ class AssistantEvaluator:
                 for itm in items
             ]
 
-        # merge evaluator verdict with original Q/A data
-        merged: List[Dict] = []
-        grade_dict = {g["index"]: g for g in grades}  # quick lookup
-        for itm in items:
-            g = grade_dict.get(itm["index"], {})
-            merged.append(
-                {
-                    **itm,  # question / reference / actual
-                    "verdict": g.get("verdict", "Missing"),
-                    "score": g.get("score", 0.0),
-                    "notes": g.get("notes", ""),
-                }
-            )
-        return merged
-
-    # ---------------------------------------------------------------------------
+        grade_by_idx = {g["index"]: g for g in grades}
+        return [
+            {
+                **itm,
+                "verdict": grade_by_idx.get(itm["index"], {}).get("verdict", "Missing"),
+                "score": grade_by_idx.get(itm["index"], {}).get("score", 0.0),
+                "notes": grade_by_idx.get(itm["index"], {}).get("notes", ""),
+            }
+            for itm in items
+        ]
 
     @staticmethod
     def generate_report(rows: List[Dict]) -> str:
@@ -145,7 +139,7 @@ if __name__ == "__main__":
     mgr = AssistantManager()
     session = AssistantTestSession(
         name="QA Tester",
-        instructions="You are a helpful assistant. Answer each numbered question clearly.",
+        instructions="You are a helpful assistant. Use the reference material (knowledge base) provided to answer each numbered question clearly.",
         tools=[{"type": "file_search"}],
         model="gpt-4o-mini",
         kb_file=KNOWLEDGE_BASE_OUTPUTS_DIR / "example.md",

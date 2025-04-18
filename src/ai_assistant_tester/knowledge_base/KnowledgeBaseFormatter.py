@@ -205,7 +205,7 @@ class KnowledgeBaseFormatter:
             prompt = qa_prompt_template.format(num_pairs=num_pairs, chunk_text=chunk)
             logging.info(f"Processing chunk {i+1} of {len(chunks)}")
             # Create a fresh set of messages for each chunk to isolate context.
-            qa_messages = [
+            qa_messages: list[ChatCompletionMessageParam] = [
                 {
                     "role": "system",
                     "content": (

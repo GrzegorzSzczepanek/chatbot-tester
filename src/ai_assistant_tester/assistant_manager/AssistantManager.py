@@ -1,19 +1,19 @@
+# TODO: change typing from Any to matching ones
+
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from openai import NotGiven, OpenAI
 from openai.pagination import SyncCursorPage
-from openai.types import VectorStore
 from openai.types.beta import ThreadDeleted
 from openai.types.beta.assistant import Assistant
-from openai.types.beta.thread import Thread, ToolResources
+from openai.types.beta.thread import Thread
 from openai.types.beta.thread_create_and_run_params import Tool
 from openai.types.beta.threads.message import Message
 from openai.types.beta.threads.run import Run
 from openai.types.beta.threads.run_submit_tool_outputs_params import ToolOutput
 from openai.types.beta.threads.runs.run_step import RunStep
 from openai.types.chat.chat_completion import ChatCompletion
-from openai.types.vector_stores.vector_store_file_batch import VectorStoreFileBatch
 
 from ai_assistant_tester.utils.utils import get_client
 
@@ -119,16 +119,20 @@ class AssistantManager:
         assistant = self.client.beta.assistants.retrieve(assistant_id)
         return assistant
 
-    def add_vector_stores(
-        self, name: str, filepaths: list[Path]
-    ) -> VectorStoreFileBatch:
+    def add_vector_stores(self, name: str, filepaths: list[Path]) -> str:
         vector_store = self.client.vector_stores.create(name=name)
         file_streams = [open(path, "rb") for path in filepaths]
-        file_batch = self.client.vector_stores.file_batches.upload_and_poll(
+
+        batch = self.client.vector_stores.file_batches.upload_and_poll(
             vector_store_id=vector_store.id, files=file_streams
         )
 
-        return file_batch
+        if batch.status == "completed":
+            print(f"Successfully uploaded {batch.id} file")
+        else:
+            print("File upload failed!")
+
+        return vector_store.id
 
     def create_assistant(
         self,
@@ -136,14 +140,14 @@ class AssistantManager:
         instructions: str,
         tools: list[Tool],
         model: str,
-        vs_ids: list[str],
+        tool_resources: Any,
     ) -> Assistant:
         assistant = self.client.beta.assistants.create(
             name=name,
             instructions=instructions,
             tools=tools,
             model=model,
-            tool_resources={"file_search": {"vector_store_ids": vs_ids}},
+            tool_resources=tool_resources,
         )
         return assistant
 

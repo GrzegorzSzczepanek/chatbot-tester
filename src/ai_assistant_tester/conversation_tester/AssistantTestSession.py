@@ -2,7 +2,7 @@ import re
 import time
 from pathlib import Path
 from pprint import pprint
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from openai.types.beta.thread_create_and_run_params import Tool
 
@@ -26,18 +26,30 @@ class AssistantTestSession:
         instructions: str,
         tools: List[Tool],
         manager: AssistantManager,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-4o",
         kb_file: Optional[Path] = None,
     ):
         self.kb_formatter = KnowledgeBaseFormatter(model=model)
         self.manager = manager
+
+        if kb_file:
+            vector_store_id = manager.add_vector_stores(
+                name="knowledge base",
+                filepaths=[kb_file],
+            )
+            self.tool_resources = {
+                "file_search": {"vector_store_ids": [vector_store_id]}
+            }
+        else:
+            self.tool_resources = None
+
         self.assistant = self.manager.create_assistant(
             name=name,
             instructions=instructions,
             tools=tools,
             model=model,
+            tool_resources=self.tool_resources,
         )
-        self.kb_file = kb_file
 
     def _format_question_batch(self, qa_set: List[QAPair]) -> str:
         """
@@ -52,6 +64,10 @@ class AssistantTestSession:
         start = time.time()
         while True:
             run = self.manager.retrieve_run(thread_id, run_id)
+            print(f"Run status: {run.status}")
+
+            if run.status == "requires_action":
+                print("Assistant is trying to use tools!")
             if run.status == "completed":
                 return
             if time.time() - start > timeout:
@@ -68,48 +84,38 @@ class AssistantTestSession:
                 return msg.content[0].text.value
         raise RuntimeError("No assistant response found in thread")
 
-    def _parse_numbered_answers(self, reply: str, expected_count: int) -> List[str]:
-        """
-        Parses a numbered list reply into individual answers.
-        """
-        pattern = re.compile(r"^\s*(\d+)\.\s*(.*)$", flags=re.MULTILINE)
+    def _parse_numbered_answers(self, reply: str) -> List[str]:
+        # Match different numbering formats
+        patterns = [
+            r"^\s*\d+\.\s*(.+)$",  # 1. Answer
+            r"^\s*\*\*\d+\..+?\*\*(.+)$",  # **1. Question?** Answer
+        ]
+
         answers = []
-        for match in pattern.finditer(reply):
-            answers.append(match.group(2).strip())
-        # If fewer answers than expected, pad with empty strings
-        while len(answers) < expected_count:
-            answers.append("")
-        return answers
+        for pattern in patterns:
+            answers = re.findall(pattern, reply, flags=re.MULTILINE)
+            if answers:
+                break
+
+        return [a.strip() for a in answers]
 
     def run_test(self, qa_pairs: QAPairs) -> List[str]:
-        """
-        Runs the QA session: optionally inject KB, send questions, wait, and return parsed answers.
-        """
-        qa_set = qa_pairs["qas"]
+        answers = []
         thread = self.manager.create_thread()
         thread_id = thread.id
 
-        # Inject knowledge base context at start of conversation
-        if self.kb_file:
-            kb_path = Path(self.kb_file)
-            if not kb_path.is_file():
-                raise FileNotFoundError(f"KB file {self.kb_file} not found")
-            kb_text = kb_path.read_text()
+        for qa in qa_pairs["qas"]:
             self.manager.add_message(
                 thread=thread,
                 role="user",
-                content=f"### Reference Material:\n{kb_text}",
+                content=qa["question"],  # Send one question at a time
             )
+            run = self.manager.create_run(thread_id, self.assistant.id)
+            self._wait_for_run(thread_id, run.id)
+            reply = self._extract_assistant_response(thread_id)
+            answers.append(reply)
 
-        batch_prompt = self._format_question_batch(qa_set)
-        self.manager.add_message(thread=thread, role="user", content=batch_prompt)
-
-        run = self.manager.create_run(thread_id, self.assistant.id)  # type: ignore
-        self._wait_for_run(thread_id, run.id)  # type: ignore
-
-        reply = self._extract_assistant_response(thread_id)
-
-        return self._parse_numbered_answers(reply, expected_count=len(qa_set))
+        return answers
 
 
 # if __name__ == "__main__":
