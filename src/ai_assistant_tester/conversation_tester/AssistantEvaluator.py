@@ -135,7 +135,7 @@ if __name__ == "__main__":
     from ai_assistant_tester.utils.constants import KNOWLEDGE_BASE_OUTPUTS_DIR
     from ai_assistant_tester.utils.utils import load_json_file_qa_pairs
 
-    qa_pairs = load_json_file_qa_pairs(QA_PAIRS_DIR / "example.json")
+    qa_pairs = load_json_file_qa_pairs(QA_PAIRS_DIR / "eg-zine-pages-dev.json")
     mgr = AssistantManager()
     session = AssistantTestSession(
         name="QA Tester",

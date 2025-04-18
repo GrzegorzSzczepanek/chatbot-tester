@@ -85,36 +85,18 @@ class AssistantTestSession:
         raise RuntimeError("No assistant response found in thread")
 
     def _parse_numbered_answers(self, reply: str) -> List[str]:
-        # Match different numbering formats
-        patterns = [
-            r"^\s*\d+\.\s*(.+)$",  # 1. Answer
-            r"^\s*\*\*\d+\..+?\*\*(.+)$",  # **1. Question?** Answer
-        ]
-
-        answers = []
-        for pattern in patterns:
-            answers = re.findall(pattern, reply, flags=re.MULTILINE)
-            if answers:
-                break
-
-        return [a.strip() for a in answers]
+        pattern = r"(?:\*\*)?(\d+)\.(?:\*\*)?\s*(.*?)(?=\s*(?:\*\*\d+\.|$))"
+        matches = re.findall(pattern, reply, flags=re.DOTALL)
+        return [m[1].strip() for m in matches]
 
     def run_test(self, qa_pairs: QAPairs) -> List[str]:
         answers = []
-        thread = self.manager.create_thread()
-        thread_id = thread.id
-
         for qa in qa_pairs["qas"]:
-            self.manager.add_message(
-                thread=thread,
-                role="user",
-                content=qa["question"],  # Send one question at a time
-            )
-            run = self.manager.create_run(thread_id, self.assistant.id)
-            self._wait_for_run(thread_id, run.id)
-            reply = self._extract_assistant_response(thread_id)
-            answers.append(reply)
-
+            thread = self.manager.create_thread()
+            self.manager.add_message(thread, "user", qa["question"])
+            run = self.manager.create_run(thread.id, self.assistant.id)
+            self._wait_for_run(thread.id, run.id)
+            answers.append(self._extract_assistant_response(thread.id))
         return answers
 
 
